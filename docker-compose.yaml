@@ -1,0 +1,51 @@
+name: "Government-Guide-API"
+
+networks:
+  govguide-internal-network:
+    driver: bridge
+
+services:
+  postgres:
+    image: "pgvector/pgvector:pg17"
+    container_name: "govguide-postgres"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    networks:
+      - govguide-internal-network
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 20s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+
+  redis:
+    image: "redis:7-alpine"
+    container_name: "govguide-redis"
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    networks:
+      - govguide-internal-network
+    command: redis-server --requirepass "${REDIS_PASSWORD} --appendonly yes"
+    ports:
+      - "127.0.0.1:${REDIS_PORT}:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", 'redis-cli -a "${REDIS_PASSWORD}" ping']
+      interval: 20s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  postgres_data:
+  redis_data:
