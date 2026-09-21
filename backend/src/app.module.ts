@@ -10,7 +10,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: [join(process.cwd(), '../.env')],
+      envFilePath: [__dirname + '../.env'],
       validationSchema: envSchema,
     }),
     TypeOrmModule.forRootAsync({
