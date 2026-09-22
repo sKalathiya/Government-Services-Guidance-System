@@ -5,12 +5,18 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { envSchema } from './config/config.env';
 import { join } from 'path';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { JurisdictionModule } from './modules/jurisdiction/jurisdiction.module';
+import { UserModule } from './modules/user/user.module';
+import { ServiceModule } from './modules/service/service.module';
+import { StepModule } from './modules/step/step.module';
+import { DocumentModule } from './modules/document/document.module';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: [__dirname + '../.env'],
+      envFilePath: [join(__dirname, '..', '..', '.env')],
       validationSchema: envSchema,
     }),
     TypeOrmModule.forRootAsync({
@@ -28,6 +34,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
         logging: configService.get('NODE_ENV') === 'development' ? true : false,
       }),
     }),
+    JurisdictionModule,
+    UserModule,
+    ServiceModule,
+    StepModule,
+    DocumentModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -9,8 +9,8 @@ approximately 10--15 Gujarat and Central Government services.
 GovGuide helps users identify potentially relevant government services
 and understand how to apply for them using verified service information.
 Visitors can freely browse and search services. Authenticated users
-additionally receive AI-guided service discovery and can manage their
-personal application progress.
+additionally receive AI-guided service discovery and can favourite
+services for later.
 
 GovGuide does **not** submit government applications, does **not** track
 actual government application status, and does **not** treat AI
@@ -30,15 +30,15 @@ The verified service record is the source of truth.
 - View complete service information.
 - Open the official government application link.
 - Cannot use AI discovery.
-- Cannot create personal progress.
+- Cannot favourite services.
 
 ### USER
 
 Everything available to a Visitor, plus: - AI-guided service
-discovery. - View and update own profile. - Start tracking a service. -
-Check and uncheck application steps. - View derived progress
-percentage. - Remove own progress records. - Cannot access another
-user's information. - Cannot manage service records.
+discovery. - View and update own profile. - Favourite a service. -
+View and remove own favourites. - Cannot check or uncheck application
+steps. - Cannot access another user's information. - Cannot manage
+service records.
 
 ### ADMIN
 
@@ -50,8 +50,8 @@ user's information. - Cannot manage service records.
 - Activate/deactivate services.
 - Update own profile.
 - Does not use AI discovery.
-- Does not use My Progress.
-- Cannot modify users' personal information or progress.
+- Does not use My Favourites.
+- Cannot modify users' personal information or favourites.
 
 ### Explicitly Out of Scope for V1
 
@@ -68,6 +68,8 @@ user's information. - Cannot manage service records.
 - Advanced analytics.
 - Multi-agent AI.
 - Complex caching.
+- Personal application-step checklists, completion counts, or
+  progress percentages.
 
 ---
 
@@ -88,12 +90,13 @@ Authenticated USER flow:
 The AI may ask multiple questions. It must not force a recommendation
 when the available service data does not contain a suitable match.
 
-### Progress Tracking
+### Favourites
 
-`Service Detail → "I'm working on this" → Checklist → Check/Uncheck Steps → Derived Percentage → Completed`
+`Service Detail → Favourite → My Favourites → Open Service Detail → Official Government Link`
 
-"Completed" means the user completed all application steps tracked by
-GovGuide. It does **not** mean the government approved the application.
+Application steps shown on a service are **informational**. They
+explain how to apply. Users cannot check, uncheck, or complete those
+steps inside GovGuide.
 
 ---
 
@@ -126,7 +129,6 @@ A Service contains:
 - `name` --- required
 - `description` --- required
 - `eligibility` --- required
-- `required_documents` --- required list
 - `fees` --- optional
 - `processing_time` --- optional
 - `official_url` --- required
@@ -136,8 +138,10 @@ A Service contains:
 - `last_verified_at` --- required
 - `created_at`
 - `updated_at`
-- semantic embedding
-- embedding processing status
+
+Embeddings are **not** columns on Service. They live in a separate
+table owned by the FastAPI service (created on AI-service init, not
+by TypeORM).
 
 Fees must distinguish between a genuinely free service and fee
 information that is unavailable.
@@ -158,6 +162,36 @@ Application steps are separate records:
 Default ordering follows creation order unless the Admin explicitly
 reorders the steps.
 
+ServiceSteps are verified service information only. They are not a
+personal checklist. No user completion state is stored against a
+step.
+
+### Document
+
+A reusable required-document catalog entry:
+
+- `id`
+- `description` --- required (what the document is, unique)
+- `example` --- optional (illustrative format or sample, not a user
+  upload)
+
+The same Document can be required by many Services (for example
+Aadhaar). A Service can require many Documents.
+
+### ServiceDocument
+
+Join record:
+
+- `id`
+- `service_id`
+- `document_id`
+
+Unique on `service_id + document_id`.
+
+A Service must have at least one required Document.
+
+Do not store required documents as a text blob on Service.
+
 ---
 
 ## 6. User Data Model
@@ -177,44 +211,23 @@ Passwords are never stored in plaintext.
 
 ---
 
-## 7. Progress Data Model
+## 7. Favourite Data Model
 
-A Progress record contains:
+A Favourite record contains:
 
 - `id`
 - `user_id`
 - `service_id`
-- `status`
-- completed ServiceStep association/list
 - `created_at`
-- `updated_at`
 
-Statuses:
-
-- `WORKING_ON`
-- `COMPLETED`
-
-Do not persist: - `total_steps` - `current_step` - `progress_percentage`
-
-Progress percentage is derived from:
-
-`completed current service steps / total current service steps × 100`
+Do not persist: - `status` - `completed_count` - `total_steps` -
+`current_step` - `progress_percentage`
 
 There must be a unique constraint on:
 
 `user_id + service_id`
 
-A user therefore has at most one Progress record per Service.
-
-### Latest-Step Policy
-
-Progress always reflects the Service's **current** steps.
-
-- New Admin step → appears incomplete for existing users.
-- Removed step → stops counting.
-- Edited wording with the same step ID → updated wording appears while
-  completion remains.
-- Steps do not have to be completed sequentially.
+A user therefore has at most one Favourite per Service.
 
 ---
 
@@ -224,12 +237,15 @@ Progress always reflects the Service's **current** steps.
 - Service `many → 1` Jurisdiction
 - Service `1 → many` ServiceSteps
 - ServiceStep `many → 1` Service
-- User `1 → many` Progress records
-- Progress `many → 1` User
-- Service `1 → many` Progress records
-- Progress `many → 1` Service
+- Document `many → many` Services (via ServiceDocument)
+- Service `many → many` Documents (via ServiceDocument)
+- User `1 → many` Favourite records
+- Favourite `many → 1` User
+- Service `1 → many` Favourite records
+- Favourite `many → 1` Service
 
-User and Service have no direct ownership relationship outside Progress.
+User and Service have no direct ownership relationship outside
+Favourite.
 
 ---
 
@@ -381,8 +397,8 @@ Never trust a frontend-supplied `user_id` for ownership.
 
 Validate all external input, including: - Registration/login. - Profile
 updates. - Service creation/update. - Jurisdiction values. -
-Required-document lists. - Service steps. - URLs. - Progress updates. -
-AI situation/answers.
+Required-document lists. - Service steps. - URLs. - Favourite
+create/remove. - AI situation/answers.
 
 ### URLs
 
@@ -426,14 +442,13 @@ configuration - Raw provider errors
 ## 14. Admin Dashboard
 
 Dashboard shows: - Active service count. - Inactive service count. -
-Total user count. - Total Progress record count. - Service-management
+Total user count. - Total Favourite record count. - Service-management
 list.
 
-"Total progress" means the number of Progress records, not the
-sum/average of progress percentages.
+"Total favourites" means the number of Favourite records.
 
 V1 does not include: - Charts. - Conversion analytics. - AI analytics. -
-Individual user progress inspection. - Activity graphs.
+Individual user favourite inspection. - Activity graphs.
 
 ---
 
@@ -450,8 +465,9 @@ recommendations.
 ### Create / Update Form
 
 Admin manages: - Name. - Description. - Eligibility. - Required
-documents. - Application steps. - Fees. - Processing time. - Official
-URL. - Source URL. - Jurisdiction. - Active/inactive state.
+documents (attach existing catalog Documents and/or create a new
+reusable Document). - Application steps. - Fees. - Processing time. -
+Official URL. - Source URL. - Jurisdiction. - Active/inactive state.
 
 Before save require: - Name. - Description. - Eligibility. - At least
 one required document. - At least one application step. - Official
@@ -478,7 +494,7 @@ Embedding generation is asynchronous using **BullMQ + Redis**.
 
 ### Service Creation
 
-`Admin Save → NestJS Saves Service → Queue Embedding Job → Request Completes → Worker Processes Job → FastAPI Generates Embedding → Embedding Stored`
+`Admin Save → NestJS Saves Service → Queue Embedding Job → Request Completes → Worker Calls FastAPI → FastAPI Generates Embedding and Upserts the Embedding Row`
 
 Normal service browsing does not have to wait for embedding generation.
 
@@ -499,7 +515,8 @@ Normal service browsing does not have to wait for embedding generation.
 
 ### Embedding Status
 
-Track an internal state such as:
+Status lives on the FastAPI-owned embedding row, not on the NestJS
+Service record:
 
 `PENDING → PROCESSING → COMPLETED`
 
@@ -544,14 +561,12 @@ Profile endpoint.
 - Continue discovery with clarification answers.
 - Return next question, recommendations, or no-match.
 
-### Progress --- USER Only
+### Favourites --- USER Only
 
-- Start tracking.
-- List own progress.
-- Get individual own progress if needed.
-- Check/uncheck steps.
-- Remove progress.
-- Derive completion state.
+- Favourite a service.
+- List own favourites.
+- Remove a favourite.
+- Duplicate favourite attempt returns the existing record.
 
 ### Admin
 
@@ -578,7 +593,7 @@ Service mutation belongs to the Admin API, not the public Service API.
 ### USER
 
 - Ask AI
-- My Progress
+- My Favourites
 - Profile
 
 ### ADMIN
@@ -597,13 +612,12 @@ Visitor clicking Ask AI is sent through authentication first.
 ### Service Detail
 
 Display: - Name. - Description. - Jurisdiction. - Eligibility. -
-Required documents. - Application steps. - Fees. - Processing time. -
-Official application link. - Source/verification information where
-appropriate.
+Required documents. - Application steps (informational). - Fees. -
+Processing time. - Official application link. - Source/verification
+information where appropriate.
 
-Authenticated USER additionally sees:
-
-`I'm working on this`
+Authenticated USER additionally sees a Favourite control. Application
+steps have no checkboxes.
 
 ### Ask AI
 
@@ -611,10 +625,10 @@ UI states: - Situation input. - Clarification question. - Answer. -
 Loading/retrieval. - Recommendations. - No-match. - Provider
 unavailable.
 
-### My Progress
+### My Favourites
 
-Display: - Tracked services. - Status. - Derived percentage. - Current
-checklist. - Check/uncheck controls. - Remove tracking.
+Display: - Favourited services. - Open service detail. - Remove
+favourite.
 
 ---
 
@@ -641,15 +655,15 @@ Empty/invalid situation: - Require meaningful input.
 - Unauthenticated protected route → authentication flow.
 - USER accessing Admin route → deny.
 - ADMIN accessing USER-only AI → deny.
-- Attempt to access another user's Progress → deny without exposing
+- Attempt to access another user's Favourite → deny without exposing
   the record.
 
-### Progress
+### Favourites
 
-Duplicate tracking attempt: - Open/return existing Progress record.
+Duplicate favourite attempt: - Open/return existing Favourite record.
 
-Removed service step: - Ignore removed step when calculating current
-progress.
+Service steps changing: - Favourites are unaffected. Steps remain
+service information only.
 
 ### JWT
 
@@ -681,7 +695,7 @@ uncertain.
 - NestJS
 
 NestJS owns: - Authentication. - Authorization. - Profile. - Service
-CRUD. - Normal service search. - Progress. - Admin APIs. - Primary
+CRUD. - Normal service search. - Favourites. - Admin APIs. - Primary
 public API boundary. - Queue job creation.
 
 ### AI Service
@@ -689,8 +703,11 @@ public API boundary. - Queue job creation.
 - FastAPI
 
 FastAPI is an internal service responsible for AI/vector-specific
-operations such as: - Embedding generation. - Query embedding. - Vector
+operations such as: - Embedding table schema (init/db bootstrap). -
+Embedding generation and persistence. - Query embedding. - Vector
 retrieval. - AI discovery orchestration. - Gemini interaction.
+
+NestJS TypeORM must not create or migrate the embedding table.
 
 ### Database
 
@@ -698,11 +715,12 @@ retrieval. - AI discovery orchestration. - Gemini interaction.
 - pgvector
 
 PostgreSQL stores: - Users. - Jurisdictions. - Services. -
-ServiceSteps. - Progress. - Embeddings.
+ServiceSteps. - Documents. - ServiceDocument links. - Favourites. -
+Embeddings.
 
 ### ORM
 
-- TypeORM for NestJS relational persistence.
+- TypeORM for NestJS relational persistence (not embeddings).
 
 ### AI
 
@@ -766,7 +784,9 @@ services. - Roughly 3--5 Central Government services.
 The exact mix can change based on useful available services.
 
 For every seeded service collect: - Name. - Description. -
-Eligibility. - Required documents. - Application steps. - Fees when
+Eligibility. - Required documents (reuse catalog Documents where the
+same document applies to more than one service; include description
+and an example when useful). - Application steps. - Fees when
 available. - Processing time when available. - Official application
 URL. - Official verification/source URL. - Jurisdiction. - Active
 state. - Verification date.
@@ -797,11 +817,9 @@ coverage number.
 
 Test: - Duplicate registration. - Invalid login. - JWT protection. -
 Role authorization. - Ownership authorization. - Active-only public
-service search. - Admin active/inactive search. - Duplicate Progress
-prevention. - Progress percentage calculation. - Check/uncheck
-behavior. - Removed-step behavior. - Completion when all current steps
-are checked. - Semantic-field update queues embedding. - Non-semantic
-update does not queue embedding.
+service search. - Admin active/inactive search. - Duplicate Favourite
+prevention. - Favourite ownership. - Semantic-field update queues
+embedding. - Non-semantic update does not queue embedding.
 
 ### FastAPI / Retrieval
 
@@ -838,17 +856,18 @@ detection.
 ### Frontend
 
 Keep V1 frontend tests focused: - Protected routes. - Search/filter
-interaction. - Progress checklist. - AI states. - Admin form validation.
+interaction. - Favourite add/remove. - AI states. - Admin form
+validation.
 
 ### Important End-to-End Flows
 
 USER:
 
-`Register → Login → Search → Service Detail → Start Progress → Check Steps → Complete`
+`Register → Login → Search → Service Detail → Favourite → My Favourites`
 
 AI:
 
-`Login → Describe Situation → Clarification → Recommendation → Service Detail → Start Progress`
+`Login → Describe Situation → Clarification → Recommendation → Service Detail → Favourite`
 
 ADMIN:
 
@@ -947,11 +966,10 @@ React communicates with NestJS, not directly with FastAPI.
 
 **Redis supports BullMQ jobs.**
 
-The exact responsibility for persisting generated vectors---whether
-FastAPI writes the vector or returns it to NestJS/worker for
-persistence---should be finalized during implementation-level backend
-design. Avoid allowing both services to casually own the same database
-writes.
+**Embedding persistence:** FastAPI owns the embedding table schema
+(Pydantic models + init-db) and all embedding row writes. NestJS
+enqueues jobs and never writes vectors. Do not let both services
+migrate the same table.
 
 ---
 
@@ -966,7 +984,9 @@ system.
 2.  Configure PostgreSQL.
 3.  Configure TypeORM.
 4.  Create migrations.
-5.  Implement Jurisdiction/User/Service/ServiceStep/Progress models.
+5.  Implement
+    Jurisdiction/User/Service/ServiceStep/Document/ServiceDocument/Favourite
+    models.
 6.  Seed jurisdictions and initial services.
 
 ### Phase 2 --- Authentication
@@ -987,16 +1007,13 @@ system.
 4.  Active/inactive rules.
 5.  Public frontend pages.
 
-### Phase 4 --- Progress
+### Phase 4 --- Favourites
 
-1.  Start tracking.
+1.  Favourite a service.
 2.  Unique user/service rule.
-3.  Checklist.
-4.  Check/uncheck.
-5.  Derived percentage.
-6.  Completion.
-7.  Remove progress.
-8.  My Progress UI.
+3.  List own favourites.
+4.  Remove favourite.
+5.  My Favourites UI.
 
 ### Phase 5 --- Admin
 
@@ -1005,8 +1022,10 @@ system.
 3.  Create service.
 4.  Update service.
 5.  Step add/remove/reorder.
-6.  Activate/deactivate.
-7.  Verification timestamp behavior.
+6.  Required-document catalog (create/reuse Documents; attach to
+    services).
+7.  Activate/deactivate.
+8.  Verification timestamp behavior.
 
 ### Phase 6 --- Queue Infrastructure
 
@@ -1020,13 +1039,14 @@ system.
 ### Phase 7 --- FastAPI AI Service
 
 1.  Internal service boundary.
-2.  Gemini configuration.
-3.  Service embedding generation.
-4.  pgvector retrieval.
-5.  Exact cosine search.
-6.  Jurisdiction filtering.
-7.  Threshold.
-8.  Top-5 retrieval.
+2.  Init-db creates the embedding table (pgvector column + status).
+3.  Gemini configuration.
+4.  Service embedding generation and upsert.
+5.  pgvector retrieval.
+6.  Exact cosine search.
+7.  Jurisdiction filtering.
+8.  Threshold.
+9.  Top-5 retrieval.
 
 ### Phase 8 --- AI Discovery
 
@@ -1074,8 +1094,9 @@ GovGuide V1 is complete when:
 - Users can register/login securely.
 - Users cannot access each other's data.
 - USER and ADMIN permissions are separated.
-- Users can track current application steps.
-- Progress responds correctly when service steps change.
+- Users can favourite services and list or remove those favourites.
+- Application steps are shown as information and cannot be checked
+  off by users.
 - Admin can manage service records without hard deletion.
 - Semantic fields trigger asynchronous embedding jobs.
 - Failed embeddings do not break normal service browsing.
@@ -1108,6 +1129,8 @@ Potential future work, deliberately excluded from V1:
 - More sophisticated service-data versioning.
 - Persistent AI conversations only if a real product requirement
   emerges.
+- Personal application-step checklists / progress tracking if a real
+  product need appears.
 
 ---
 
@@ -1115,8 +1138,7 @@ Potential future work, deliberately excluded from V1:
 
 1.  **Verified government data beats generated data.**
 2.  **AI discovers services; it does not define government rules.**
-3.  **Users own their personal progress; Admins own service
-    management.**
+3.  **Users own their favourites; Admins own service management.**
 4.  **Do not collect personal data without a product need.**
 5.  **Do not add infrastructure without a concrete responsibility.**
 6.  **Background work belongs in the queue, not the request lifecycle.**

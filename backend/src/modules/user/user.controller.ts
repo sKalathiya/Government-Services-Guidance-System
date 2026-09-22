@@ -1,0 +1,14 @@
+import {
+  ClassSerializerInterceptor,
+  Controller,
+  SerializeOptions,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { UserService } from './user.service';
+
+@Controller('user')
+@UseInterceptors(ClassSerializerInterceptor)
+export class UserController {
+  constructor(private readonly userService: UserService) {}
+}
