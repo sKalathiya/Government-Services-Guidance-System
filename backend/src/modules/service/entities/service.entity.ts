@@ -54,10 +54,10 @@ export default class Service {
   feesType: FeesType;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  feesText: string;
+  feesText: string | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  processingTime: string;
+  processingTime: string | null;
 
   @Column({ type: 'boolean', default: true, nullable: false })
   isActive: boolean;

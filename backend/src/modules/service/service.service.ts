@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import Service from './entities/service.entity';
 import { FindOptionsWhere, ILike, Repository } from 'typeorm';
 import { JurisdictionService } from '../jurisdiction/jurisdiction.service';
+import { ServiceDetailResponseDto } from './dto/service-detail-response.dto';
 
 @Injectable()
 export class ServiceService {
@@ -54,7 +55,7 @@ export class ServiceService {
     return services;
   }
 
-  async findById(id: string) {
+  async findById(id: string): Promise<ServiceDetailResponseDto> {
     const service = await this.serviceRepository.findOne({
       where: { id, isActive: true },
       select: {
@@ -81,6 +82,28 @@ export class ServiceService {
     if (!service) {
       throw new NotFoundException('Service not found');
     }
-    return service;
+    const response = new ServiceDetailResponseDto();
+    response.id = service.id;
+    response.name = service.name;
+    response.description = service.description;
+    response.eligibility = service.eligibility;
+    response.sourceUrl = service.sourceUrl;
+    response.officialUrl = service.officialUrl;
+    response.feesType = service.feesType;
+    response.feesText = service.feesText;
+    response.processingTime = service.processingTime;
+    response.jurisdiction = {
+      code: service.jurisdiction.code,
+      name: service.jurisdiction.name,
+    };
+    response.requiredDocuments = service.requiredDocuments.map((row) => ({
+      description: row.document.description,
+      example: row.document.example,
+    }));
+    response.steps = service.steps.map((step) => ({
+      text: step.step_text,
+      order: step.step_order,
+    }));
+    return response;
   }
 }

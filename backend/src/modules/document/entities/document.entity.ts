@@ -10,7 +10,7 @@ export default class Document {
   description: string;
 
   @Column({ type: 'text', nullable: true })
-  example: string;
+  example: string | null;
 
   @OneToMany(
     () => ServiceDocument,
