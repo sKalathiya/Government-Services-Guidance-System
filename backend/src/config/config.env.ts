@@ -14,5 +14,6 @@ export const envSchema = Joi.object({
     .default('development'),
   PORT: Joi.number().port().default(3000),
   JWT_SECRET: Joi.string().trim().min(32).required(),
-  JWT_EXPIRATION_TIME: Joi.string().trim().min(1).default('15m'),
+  JWT_EXPIRATION_TIME: Joi.string().trim().empty('').default('15m'),
+  JWT_COOKIE_NAME: Joi.string().trim().min(5).default('access-token'),
 });

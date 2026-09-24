@@ -9,6 +9,7 @@ import bcrypt from 'bcrypt';
 import { LoginDto } from './dto/login.dto';
 import { UserRole } from '../user/entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
+import { PasswordChangeDto } from './dto/passwordChange.dto';
 
 const SALT_ROUNDS = 12;
 
@@ -59,6 +60,20 @@ export class AuthService {
   }
 
   /**
+   * Get the current user
+   * @param sub - The subject of the user
+   * @param role - The role of the user
+   * @returns The current user
+   */
+  async getCurrentUser(userId: string) {
+    const user = await this.userService.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException('Unauthorized');
+    }
+    return user;
+  }
+
+  /**
    * Generate a JWT token
    * @param sub - The subject of the token
    * @param role - The role of the user
@@ -68,5 +83,29 @@ export class AuthService {
     const payload = { sub, role };
     const token = await this.jwtService.signAsync(payload);
     return token;
+  }
+
+  /**
+   * Change the current user's password
+   * @param passwordChangeDto - The password change data
+   * @param sub - The id of the user
+   * @returns The changed password
+   */
+  async changePassword(passwordChangeDto: PasswordChangeDto, sub: string) {
+    const { currentPassword, newPassword } = passwordChangeDto;
+    const user = await this.userService.findById(sub);
+    if (!user) {
+      throw new UnauthorizedException('Unauthorized');
+    }
+    const isSamePassword = await bcrypt.compare(
+      currentPassword,
+      user.passwordHash,
+    );
+    if (!isSamePassword) {
+      throw new UnauthorizedException('Unauthorized');
+    }
+    const newPasswordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    await this.userService.updatePassword(newPasswordHash, sub);
+    return { message: 'Password changed successfully!' };
   }
 }

@@ -18,13 +18,17 @@ describe('AuthService', () => {
   let service: AuthService;
   let userService: {
     findbyEmail: jest.Mock;
+    findById: jest.Mock;
     createUser: jest.Mock;
+    updatePassword: jest.Mock;
   };
   let jwtService: { signAsync: jest.Mock };
 
   beforeEach(async () => {
     userService = {
       findbyEmail: jest.fn().mockResolvedValue(null),
+      findById: jest.fn().mockResolvedValue(null),
+      updatePassword: jest.fn().mockResolvedValue(undefined),
       createUser: jest.fn(
         (
           name: string,
@@ -181,6 +185,44 @@ describe('AuthService', () => {
       );
       expect(compare).toHaveBeenCalledTimes(1);
       expect(compare.mock.calls[0][1]).toMatch(/^\$2[aby]\$12\$/);
+    });
+  });
+
+  describe('changePassword', () => {
+    const userId = '6f1b9b7e-0f3a-4f9a-8a1e-2c9d3b4a5e60';
+
+    it('replaces the hash only after the current password matches', async () => {
+      const registered = await service.register(registerDto);
+      userService.findById.mockResolvedValue(registered);
+
+      await expect(
+        service.changePassword(
+          {
+            currentPassword: registerDto.password,
+            newPassword: 'NewPassword@123',
+          },
+          userId,
+        ),
+      ).resolves.toEqual({ message: 'Password changed successfully!' });
+
+      const stored: string = userService.updatePassword.mock.calls[0][0];
+      expect(stored).not.toBe('NewPassword@123');
+      await expect(bcrypt.compare('NewPassword@123', stored)).resolves.toBe(
+        true,
+      );
+      expect(userService.updatePassword.mock.calls[0][1]).toBe(userId);
+    });
+
+    it('rejects a wrong current password and keeps the old hash', async () => {
+      userService.findById.mockResolvedValue(await service.register(registerDto));
+
+      await expect(
+        service.changePassword(
+          { currentPassword: 'Wrong@12345', newPassword: 'NewPassword@123' },
+          userId,
+        ),
+      ).rejects.toThrow(UnauthorizedException);
+      expect(userService.updatePassword).not.toHaveBeenCalled();
     });
   });
 });

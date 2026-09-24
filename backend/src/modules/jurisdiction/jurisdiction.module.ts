@@ -8,5 +8,6 @@ import Jurisdiction from './entities/jurisdiction.entity';
   imports: [TypeOrmModule.forFeature([Jurisdiction])],
   controllers: [JurisdictionController],
   providers: [JurisdictionService],
+  exports: [JurisdictionService],
 })
 export class JurisdictionModule {}

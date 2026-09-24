@@ -5,7 +5,9 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { JwtModule, JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
+import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AuthController } from './auth.controller';
@@ -24,6 +26,7 @@ const credentials = {
 };
 
 const token = 'signed.jwt.token';
+const JWT_SECRET = 'a'.repeat(40);
 
 const registeredUser = Object.assign(new User(), {
   id: '6f1b9b7e-0f3a-4f9a-8a1e-2c9d3b4a5e60',
@@ -46,27 +49,37 @@ const serializedUser = {
 
 describe('AuthController', () => {
   let app: INestApplication<App>;
-  let authService: { register: jest.Mock; login: jest.Mock };
+  let authService: {
+    register: jest.Mock;
+    login: jest.Mock;
+    changePassword: jest.Mock;
+  };
+  let jwt: JwtService;
 
   /** Boots the controller with the same pipe main.ts applies. */
   async function createApp(nodeEnv = 'development') {
     const module: TestingModule = await Test.createTestingModule({
+      imports: [JwtModule.register({ secret: JWT_SECRET })],
       controllers: [AuthController],
       providers: [
         { provide: AuthService, useValue: authService },
         {
           provide: ConfigService,
           useValue: {
-            get: jest.fn((key: string) =>
-              key === 'NODE_ENV' ? nodeEnv : '15m',
-            ),
+            get: jest.fn((key: string) => {
+              if (key === 'NODE_ENV') return nodeEnv;
+              if (key === 'JWT_COOKIE_NAME') return 'access-token';
+              return '15m';
+            }),
           },
         },
       ],
     }).compile();
 
+    jwt = module.get(JwtService);
     const created = module.createNestApplication<INestApplication<App>>();
     created.setGlobalPrefix('api/v1');
+    created.use(cookieParser());
     created.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
@@ -85,6 +98,9 @@ describe('AuthController', () => {
     authService = {
       register: jest.fn().mockResolvedValue(registeredUser),
       login: jest.fn().mockResolvedValue({ token, user: registeredUser }),
+      changePassword: jest
+        .fn()
+        .mockResolvedValue({ message: 'Password changed successfully!' }),
     };
     app = await createApp();
   });
@@ -254,6 +270,51 @@ describe('AuthController', () => {
       expect(response.headers['set-cookie']).toBeUndefined();
       expect(JSON.stringify(response.body)).not.toMatch(/not found|no user/i);
       expect(response.body.message).toBe('Invalid email or password!');
+    });
+  });
+
+  describe('PATCH /auth/password', () => {
+    async function cookieFor(sub = registeredUser.id) {
+      const signed = await jwt.signAsync({ sub, role: UserRole.USER });
+      return `access-token=${signed}`;
+    }
+
+    it('changes the password for the user in the cookie', async () => {
+      const response = await request(app.getHttpServer())
+        .patch('/api/v1/auth/password')
+        .set('Cookie', await cookieFor())
+        .send({
+          currentPassword: 'Password@123',
+          newPassword: 'NewPassword@123',
+        });
+
+      expect(response.status).toBe(200);
+      expect(authService.changePassword).toHaveBeenCalledWith(
+        expect.objectContaining({ newPassword: 'NewPassword@123' }),
+        registeredUser.id,
+      );
+    });
+
+    it('rejects a weak new password before the service', async () => {
+      const response = await request(app.getHttpServer())
+        .patch('/api/v1/auth/password')
+        .set('Cookie', await cookieFor())
+        .send({ currentPassword: 'Password@123', newPassword: 'password' });
+
+      expect(response.status).toBe(400);
+      expect(authService.changePassword).not.toHaveBeenCalled();
+    });
+
+    it('returns 401 with no cookie', async () => {
+      const response = await request(app.getHttpServer())
+        .patch('/api/v1/auth/password')
+        .send({
+          currentPassword: 'Password@123',
+          newPassword: 'NewPassword@123',
+        });
+
+      expect(response.status).toBe(401);
+      expect(authService.changePassword).not.toHaveBeenCalled();
     });
   });
 });

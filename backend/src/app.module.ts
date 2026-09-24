@@ -11,6 +11,7 @@ import { ServiceModule } from './modules/service/service.module';
 import { StepModule } from './modules/step/step.module';
 import { DocumentModule } from './modules/document/document.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { SecurityModule } from './modules/security/security.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { AuthModule } from './modules/auth/auth.module';
     StepModule,
     DocumentModule,
     AuthModule,
+    SecurityModule,
   ],
   controllers: [AppController],
   providers: [AppService],
