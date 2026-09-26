@@ -21,6 +21,8 @@
     "migration:revert": "typeorm migration:revert -d dist/database/data-source.js",
     "preseed": "npm run build",
     "seed": "node dist/database/seed.js",
+    "preseed:dev": "npm run build",
+    "seed:dev": "node dist/database/seed.js --development",
     "lint": "oxlint --type-aware src/ test/",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
     "test:watch": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --watch",

@@ -3,7 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ILike } from 'typeorm';
 import { ServiceService } from './service.service';
-import Service from './entities/service.entity';
+import Service, { FeesType } from './entities/service.entity';
 import { JurisdictionService } from '../jurisdiction/jurisdiction.service';
 
 const serviceId = '6f1b9b7e-0f3a-4f9a-8a1e-2c9d3b4a5e60';
@@ -27,7 +27,34 @@ describe('ServiceService', () => {
   beforeEach(async () => {
     repository = {
       find: jest.fn().mockResolvedValue([]),
-      findOne: jest.fn().mockResolvedValue({ id: serviceId }),
+      findOne: jest.fn().mockResolvedValue({
+        id: serviceId,
+        name: 'Senior Pension',
+        description: 'Monthly financial assistance.',
+        eligibility: 'Residents aged 60 and above.',
+        sourceUrl: 'https://example.gov/source',
+        officialUrl: 'https://example.gov/apply',
+        feesType: FeesType.FREE,
+        feesText: null,
+        processingTime: '30 days',
+        jurisdiction: { code: 'GUJARAT', name: 'Gujarat' },
+        requiredDocuments: [
+          {
+            document: {
+              id: 'document-1',
+              description: 'Identity proof',
+              example: null,
+            },
+          },
+        ],
+        steps: [
+          {
+            id: 'step-1',
+            step_text: 'Complete the application.',
+            step_order: 1,
+          },
+        ],
+      }),
     };
     jurisdictions = {
       findByCode: jest.fn().mockResolvedValue({ code: 'GUJARAT' }),
@@ -110,6 +137,29 @@ describe('ServiceService', () => {
     it('loads one active service with its documents and ordered steps', async () => {
       await expect(service.findById(serviceId)).resolves.toEqual({
         id: serviceId,
+        name: 'Senior Pension',
+        description: 'Monthly financial assistance.',
+        eligibility: 'Residents aged 60 and above.',
+        sourceUrl: 'https://example.gov/source',
+        officialUrl: 'https://example.gov/apply',
+        feesType: FeesType.FREE,
+        feesText: null,
+        processingTime: '30 days',
+        jurisdiction: { code: 'GUJARAT', name: 'Gujarat' },
+        requiredDocuments: [
+          {
+            id: 'document-1',
+            description: 'Identity proof',
+            example: null,
+          },
+        ],
+        steps: [
+          {
+            id: 'step-1',
+            text: 'Complete the application.',
+            order: 1,
+          },
+        ],
       });
 
       expect(repository.findOne).toHaveBeenCalledWith({
@@ -126,9 +176,10 @@ describe('ServiceService', () => {
           processingTime: true,
           jurisdiction: { code: true, name: true },
           requiredDocuments: {
-            document: { description: true, example: true },
+            id: true,
+            document: { id: true, description: true, example: true },
           },
-          steps: { step_text: true, step_order: true },
+          steps: { id: true, step_text: true, step_order: true },
         },
         relations: {
           jurisdiction: true,

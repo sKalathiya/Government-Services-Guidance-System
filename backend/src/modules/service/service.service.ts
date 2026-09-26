@@ -69,8 +69,11 @@ export class ServiceService {
         feesText: true,
         processingTime: true,
         jurisdiction: { code: true, name: true },
-        requiredDocuments: { document: { description: true, example: true } },
-        steps: { step_text: true, step_order: true },
+        requiredDocuments: {
+          id: true,
+          document: { id: true, description: true, example: true },
+        },
+        steps: { id: true, step_text: true, step_order: true },
       },
       relations: {
         jurisdiction: true,
@@ -97,10 +100,12 @@ export class ServiceService {
       name: service.jurisdiction.name,
     };
     response.requiredDocuments = service.requiredDocuments.map((row) => ({
+      id: row.document.id,
       description: row.document.description,
       example: row.document.example,
     }));
     response.steps = service.steps.map((step) => ({
+      id: step.id,
       text: step.step_text,
       order: step.step_order,
     }));

@@ -89,7 +89,7 @@ export class AuthService {
    * Change the current user's password
    * @param passwordChangeDto - The password change data
    * @param sub - The id of the user
-   * @returns The changed password
+   * @returns The changed password message
    */
   async changePassword(passwordChangeDto: PasswordChangeDto, sub: string) {
     const { currentPassword, newPassword } = passwordChangeDto;

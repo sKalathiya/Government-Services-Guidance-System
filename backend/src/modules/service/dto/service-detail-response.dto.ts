@@ -2,6 +2,12 @@ import { ApiProperty } from '@nestjs/swagger';
 import { FeesType } from '../entities/service.entity';
 
 export class ServiceResultsStepDto {
+  @ApiProperty({
+    description: ' The Id of the step',
+    type: String,
+  })
+  id: string;
+
   @ApiProperty({ description: 'The text of the step', type: String })
   text: string;
 
@@ -10,6 +16,12 @@ export class ServiceResultsStepDto {
 }
 
 export class ServiceResultsRequiredDocumentDto {
+  @ApiProperty({
+    description: ' The Id of the required document',
+    type: String,
+  })
+  id: string;
+
   @ApiProperty({
     description: 'The description of the required document',
     type: String,

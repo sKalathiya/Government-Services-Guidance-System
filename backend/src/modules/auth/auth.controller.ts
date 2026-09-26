@@ -131,4 +131,15 @@ export class AuthController {
   ) {
     return await this.authService.changePassword(passwordChangeDto, sub);
   }
+
+  @Post('logout')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Logout a user' })
+  @HttpCode(HttpStatus.OK)
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  @ApiInternalServerErrorResponse({ description: 'Internal Server Error' })
+  async logout(@Res({ passthrough: true }) res: Response) {
+    res.clearCookie(this.getJwtCookieName(), this.getCookieOptions());
+    return { message: 'You have been logged out.' };
+  }
 }
