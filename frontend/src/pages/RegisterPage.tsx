@@ -4,12 +4,15 @@ import { register } from "../api/auth";
 import { ApiError } from "../api/client";
 import { RegisterForm } from "../features/auth/components/RegisterForm";
 import type { RegisterInput } from "../types/auth.types";
+import { useToast } from "../shared/toast/useToast";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const { showSuccess } = useToast();
   const { mutate, isPending, error } = useMutation({
     mutationFn: (data: RegisterInput) => register(data),
     onSuccess() {
+      showSuccess("Account created. You can sign in.");
       navigate("/login");
     },
   });

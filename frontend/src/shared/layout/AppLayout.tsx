@@ -4,16 +4,19 @@ import useAuthenticatedUser from "../../features/auth/hooks/useAuthenticatedUser
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { logout } from "../../api/auth";
 import { getAuthKey } from "../../features/auth/queries/auth.queryKeys";
+import { useToast } from "../toast/useToast";
 
 export function AppLayout() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { showSuccess } = useToast();
   const { data, isPending } = useAuthenticatedUser();
 
   const { mutate } = useMutation({
     mutationFn: () => logout(),
     onSuccess: () => {
       queryClient.setQueryData(getAuthKey(), null);
+      showSuccess("Signed out.");
       navigate("/");
     },
   });
@@ -38,7 +41,7 @@ export function AppLayout() {
             aria-label="Primary navigation"
             className="flex w-full flex-wrap gap-1 justify-between items-center"
           >
-            <div>
+            <div className="flex flex-wrap gap-1 justify-between items-center">
               {!data && (
                 <NavLink to="/" end className={navigationClass}>
                   Home
