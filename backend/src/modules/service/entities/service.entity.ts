@@ -12,6 +12,7 @@ import Jurisdiction from '../../jurisdiction/entities/jurisdiction.entity.js';
 import Step from '../../step/entities/step.entity.js';
 import ServiceDocument from '../../document/entities/service-document.entity.js';
 import FavouriteService from '../../user/entities/favourite-service.entity.js';
+import { Exclude } from 'class-transformer';
 
 export enum FeesType {
   FREE = 'FREE',
@@ -32,6 +33,10 @@ export default class Service {
 
   @Column({ type: 'text', nullable: false })
   eligibility: string;
+
+  @Column({ type: 'numeric', nullable: false })
+  @Exclude()
+  version: number;
 
   @Column({ type: 'varchar', length: 255, nullable: false })
   sourceUrl: string;

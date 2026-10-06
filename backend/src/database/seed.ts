@@ -43,6 +43,7 @@ async function seedDevelopmentServices(manager: EntityManager): Promise<void> {
     DEVELOPMENT_SERVICE_SEEDS.map((seed) => ({
       id: seed.id,
       name: seed.name,
+      embeddingVersion: seed.embeddingVersion,
       description: seed.description,
       eligibility: seed.eligibility,
       sourceUrl: seed.sourceUrl,

@@ -17,7 +17,7 @@ import { SecurityModule } from './modules/security/security.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: [join(__dirname, '..', '..', '.env')],
+      envFilePath: ['.env'],
       validationSchema: envSchema,
     }),
     TypeOrmModule.forRootAsync({

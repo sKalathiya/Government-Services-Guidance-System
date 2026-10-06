@@ -5,6 +5,7 @@ export type DevelopmentServiceSeed = {
   name: string;
   description: string;
   eligibility: string;
+  embeddingVersion: number;
   sourceUrl: string;
   officialUrl: string;
   feesType: FeesType;
@@ -26,6 +27,7 @@ export const DEVELOPMENT_SERVICE_SEEDS = [
       'Online access to scholarship applications offered through the Digital Gujarat portal for eligible students.',
     eligibility:
       'Eligibility depends on the selected scholarship, including category, income, residence, course, and academic requirements. Confirm the current criteria on the official portal.',
+    embeddingVersion: 1,
     sourceUrl: 'https://www.digitalgujarat.gov.in/',
     officialUrl: 'https://www.digitalgujarat.gov.in/',
     feesType: FeesType.FREE,
@@ -61,6 +63,7 @@ export const DEVELOPMENT_SERVICE_SEEDS = [
       'Application guidance for obtaining an income certificate used for scholarships, reservations, and other public services.',
     eligibility:
       'Residents of Gujarat who need official evidence of family or household income may apply. The issuing authority may request additional local evidence.',
+    embeddingVersion: 1,
     sourceUrl: 'https://www.digitalgujarat.gov.in/',
     officialUrl: 'https://www.digitalgujarat.gov.in/',
     feesType: FeesType.SPECIFIED,
@@ -92,6 +95,7 @@ export const DEVELOPMENT_SERVICE_SEEDS = [
       'Guidance for new ration-card applications and common updates such as adding a family member or changing an address.',
     eligibility:
       'Households ordinarily residing in Gujarat may apply subject to food and civil-supplies rules. Entitlement categories depend on current government criteria.',
+    embeddingVersion: 1,
     sourceUrl: 'https://dcs-dof.gujarat.gov.in/',
     officialUrl: 'https://www.digitalgujarat.gov.in/',
     feesType: FeesType.SPECIFIED,
@@ -126,6 +130,7 @@ export const DEVELOPMENT_SERVICE_SEEDS = [
       'Application guidance for eligible widowed women seeking financial assistance under the applicable Gujarat social-security scheme.',
     eligibility:
       'Eligibility depends on age, residence, marital status, income, and other current scheme rules. Confirm current limits with the official authority.',
+    embeddingVersion: 1,
     sourceUrl: 'https://sje.gujarat.gov.in/',
     officialUrl: 'https://www.digitalgujarat.gov.in/',
     feesType: FeesType.FREE,
@@ -161,6 +166,7 @@ export const DEVELOPMENT_SERVICE_SEEDS = [
       'Guidance for applying for a new Indian passport or reissuing an existing passport through Passport Seva.',
     eligibility:
       'Indian citizens may apply. Required documents and verification depend on age, application type, address, and individual circumstances.',
+    embeddingVersion: 1,
     sourceUrl: 'https://www.passportindia.gov.in/',
     officialUrl: 'https://www.passportindia.gov.in/',
     feesType: FeesType.SPECIFIED,
@@ -193,6 +199,7 @@ export const DEVELOPMENT_SERVICE_SEEDS = [
       'Guidance for eligible farmer families using the PM-KISAN portal for registration, status checks, and record updates.',
     eligibility:
       'Eligibility is determined by current PM-KISAN rules, verified land records, and applicable exclusion categories.',
+    embeddingVersion: 1,
     sourceUrl: 'https://pmkisan.gov.in/',
     officialUrl: 'https://pmkisan.gov.in/',
     feesType: FeesType.FREE,
@@ -224,6 +231,7 @@ export const DEVELOPMENT_SERVICE_SEEDS = [
       'Guidance for checking PM-JAY eligibility, finding an empanelled hospital, and obtaining beneficiary support.',
     eligibility:
       'Eligibility is based on the current PM-JAY beneficiary database and applicable state implementation rules.',
+    embeddingVersion: 1,
     sourceUrl: 'https://pmjay.gov.in/',
     officialUrl: 'https://beneficiary.nha.gov.in/',
     feesType: FeesType.FREE,
@@ -251,6 +259,7 @@ export const DEVELOPMENT_SERVICE_SEEDS = [
       'Central portal guidance for discovering and applying to participating government scholarship schemes.',
     eligibility:
       'Eligibility varies by scholarship and may include academic, income, category, domicile, institution, and course requirements.',
+    embeddingVersion: 1,
     sourceUrl: 'https://scholarships.gov.in/',
     officialUrl: 'https://scholarships.gov.in/',
     feesType: FeesType.FREE,
