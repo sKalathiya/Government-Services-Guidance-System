@@ -5,9 +5,13 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import Service from './entities/service.entity';
-import { FindOptionsWhere, ILike, Repository } from 'typeorm';
+import { DataSource, FindOptionsWhere, ILike, Repository } from 'typeorm';
 import { JurisdictionService } from '../jurisdiction/jurisdiction.service';
 import { ServiceDetailResponseDto } from './dto/service-detail-response.dto';
+import { CreateServiceDto } from './dto/create-service.dto';
+import { DocumentService } from '../document/document.service';
+import ServiceDocument from '../document/entities/service-document.entity';
+import Step from '../step/entities/step.entity';
 
 @Injectable()
 export class ServiceService {
@@ -15,10 +19,11 @@ export class ServiceService {
     @InjectRepository(Service)
     private readonly serviceRepository: Repository<Service>,
     private readonly jurisdictionService: JurisdictionService,
+    private readonly documentService: DocumentService,
   ) {}
 
   /**
-   * List services
+   * List services  
    * @param query - Query string
    * @param jurisdiction - Jurisdiction code
    * @throws BadRequestException if jurisdiction is invalid
@@ -110,5 +115,67 @@ export class ServiceService {
       order: step.step_order,
     }));
     return response;
+  }
+
+  /**
+   * Create a new service
+   * @param createServiceDto - Service creation data
+   * @throws NotFoundException if jurisdiction is not found
+   * @throws BadRequestException if required documents are invalid
+   * @returns Created service
+   */
+
+  async create(createServiceDto: CreateServiceDto): Promise<Service> {
+    const jurisdiction = await this.jurisdictionService.findByCode(
+      createServiceDto.jurisdiction,
+    );
+    if (!jurisdiction) {
+      throw new NotFoundException('No such jurisdiction found');
+    }
+    const requiredDocuments = await this.documentService.findByIds(
+      createServiceDto.requiredDocuments,
+    );
+    if (
+      requiredDocuments.length !== createServiceDto.requiredDocuments.length
+    ) {
+      throw new BadRequestException('Invalid required documents');
+    }
+
+    return this.serviceRepository.manager.transaction(async (manager) => {
+      let service = new Service();
+      service.name = createServiceDto.name;
+      service.description = createServiceDto.description;
+      service.version = 1;
+      service.eligibility = createServiceDto.eligibility;
+      service.sourceUrl = createServiceDto.sourceUrl;
+      service.officialUrl = createServiceDto.officialUrl;
+      service.feesType = createServiceDto.feesType;
+      service.feesText = createServiceDto.feesText ?? null;
+      service.processingTime = createServiceDto.processingTime ?? null;
+      service.jurisdiction = jurisdiction;
+      service.lastVerifiedAt = new Date();
+
+      service = await manager.save(service);
+
+      //steps validation remaining
+      const steps = createServiceDto.steps.map((step) => {
+        const stepEntity = new Step();
+        stepEntity.step_text = step.step_text;
+        stepEntity.step_order = step.step_order;
+        stepEntity.service = service;
+        return stepEntity;
+      });
+
+      const serviceDocuments = requiredDocuments.map((document) => {
+        const serviceDocument = new ServiceDocument();
+        serviceDocument.document = document;
+        serviceDocument.service = service;
+        return serviceDocument;
+      });
+
+      await manager.save(steps);
+      await manager.save(serviceDocuments);
+      return service;
+    });
   }
 }

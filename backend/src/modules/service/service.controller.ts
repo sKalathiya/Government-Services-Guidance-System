@@ -1,4 +1,11 @@
-import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ServiceService } from './service.service';
 import {
   ApiBadRequestResponse,
@@ -7,9 +14,12 @@ import {
   ApiOperation,
   ApiParam,
   ApiQuery,
+  ApiCreatedResponse,
+  ApiBody,
 } from '@nestjs/swagger';
-import { HttpCode, HttpStatus } from '@nestjs/common';
+import { Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { ServiceDetailResponseDto } from './dto/service-detail-response.dto';
+import { CreateServiceDto } from './dto/create-service.dto';
 
 @Controller('services')
 export class ServiceController {
@@ -38,5 +48,14 @@ export class ServiceController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<ServiceDetailResponseDto> {
     return await this.serviceService.findById(id);
+  }
+
+  @Post()
+  @ApiOperation({ summary: 'Create service' })
+  @ApiBody({ type: CreateServiceDto })
+  @HttpCode(HttpStatus.CREATED)
+  @ApiCreatedResponse({ description: 'Service created successfully' })
+  async create(@Body() createServiceDto: CreateServiceDto) {
+    return await this.serviceService.create(createServiceDto);
   }
 }
